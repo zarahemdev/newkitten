@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get a Kitten</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        body {
+            font-family: 'Trebuchet MS', sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #fff0f5; /* Lavender blush */
+            color: #8b008b; /* Dark magenta text */
+        }
+
+        /* Animating the heading */
+        h1 {
+            color: #ff69b4; /* Hot pink */
+            animation: fadeIn 2s ease-in-out; /* Fade in on page load */
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Button styling and animation */
+        .btn {
+            padding: 12px 25px;
+            font-size: 16px;
+            margin: 10px;
+            background-color: #ffb6c1; /* Light pink */
+            color: white;
+            border: 2px solid #ff69b4; /* Hot pink */
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s; /* Transition for hover effect */
+        }
+
+        /* Pulsing effect on hover */
+        .btn:hover {
+            background-color: #ff69b4; /* Hot pink */
+            transform: scale(1.05); /* Slightly increase size */
+        }
+
+        /* Animating the text input field */
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px;
+            width: 300px;
+            border: 2px solid #ff69b4; /* Hot pink */
+            border-radius: 8px;
+            background-color: #faf0e6; /* Linen */
+            color: #8b008b; /* Dark magenta */
+            animation: bounceIn 1s ease; /* Bounce-in effect */
+        }
+
+        /* Animating the text fade-in */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        /* Bounce-in animation for input fields */
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            60% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Image styling (No animation for image as per request) */
+        #catImage {
+            width: 300px;
+            height: auto;
+            margin-top: 20px;
+            border: 4px solid #ff69b4; /* Hot pink border */
+            border-radius: 10px;
+        }
+
+        /* Payment status text */
+        #paymentStatusResult {
+            margin-top: 20px;
+            color: #ff69b4; /* Hot pink */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Get a Kitten</h1>
+
+    <!-- Connect Wallet Button -->
+    <button class="btn" id="connectWalletButton" onclick="connectWallet()">Connect Wallet</button>
+
+    <!-- Pay to Reveal Button -->
+    <button class="btn hidden" id="payToRevealButton" onclick="payToReveal()">Pay to Reveal Kitten (0.01 ETH)</button>
+
+    <!-- Div to show payment status -->
+    <div id="paymentStatusResult"></div>
+
+    <!-- Image reveal (hidden by default) -->
+    <img id="catImage" class="hidden" src="cat.webp" alt="Kitten Image">
+
+    <script>
+        // Contract and Wallet Information
+        const contractAddress = "0x1552dFF75503a1841D3461c65D07CbA3e1F8D02f"; // Replace with your contract address
+        const abi = [
+            // Contract ABI
+            {
+                "inputs": [],
+                "name": "payToReveal",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                    }
+                ],
+                "name": "checkPaymentStatus",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        let provider;
+        let signer;
+        let contract;
+
+        // Connect to MetaMask Wallet and check payment status
+        async function connectWallet() {
+            if (window.ethereum) {
+                try {
+                    provider = new ethers.BrowserProvider(window.ethereum);
+                    await provider.send("eth_requestAccounts", []);
+                    signer = await provider.getSigner();
+                    contract = new ethers.Contract(contractAddress, abi, signer);
+                    document.getElementById('payToRevealButton').classList.remove('hidden');
+                    await checkPaymentStatus();
+                } catch (error) {
+                    console.error(error);
+                    alert("Error connecting wallet: " + error.message);
+                }
+            } else {
+                alert("MetaMask is not installed. Please install MetaMask to interact with this page.");
+            }
+        }
+
+        // Pay 0.01 ETH to reveal the kitten image
+        async function payToReveal() {
+            try {
+                const tx = await contract.payToReveal({ value: ethers.parseEther("0.01") });
+                await tx.wait();
+                alert("Payment successful! The kitten image is now revealed.");
+                document.getElementById('catImage').classList.remove('hidden');
+            } catch (error) {
+                console.error(error);
+                alert("Payment failed or insufficient ETH: " + error.message);
+            }
+        }
+
+        // Check if the user has already paid to reveal the image
+        async function checkPaymentStatus() {
+            try {
+                const address = await signer.getAddress();
+                const hasPaid = await contract.checkPaymentStatus(address);
+                if (hasPaid) {
+                    document.getElementById('catImage').classList.remove('hidden');
+                    document.getElementById('payToRevealButton').classList.add('hidden');
+                    alert("You've already paid! The kitten image is revealed.");
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    </script>
+
+</body>
+</html>
